@@ -27,12 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.worker_thread = Thread(target=self.worker.generate_data)
         self.worker_thread.start()
 
-        self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.update_plot)
-        self.timer.start(1000)  # Update plot every second
-
-        self.init_ui()
-
         # Add hover lines and label
         self.vline = InfiniteLine(angle=90, movable=False, pen=mkPen('g', width=1))
         self.hline = InfiniteLine(angle=0, movable=False, pen=mkPen('g', width=1))
@@ -45,16 +39,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.plot_widget.setLabel('left', 'Magnitude', units='dB')
         self.plot_widget.setLabel('bottom', 'Frequency')
 
-    def init_ui(self):
-        toolbar = self.addToolBar("Control")
-        stop_button = QtWidgets.QPushButton("Stop")
-        stop_button.clicked.connect(self.stop_plotting)
-        toolbar.addWidget(stop_button)
-
-        resume_button = QtWidgets.QPushButton("Resume")
-        resume_button.clicked.connect(self.resume_plotting)
-        toolbar.addWidget(resume_button)
-
     def update_plot(self):
         try:
             while True:
@@ -65,19 +49,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.plot_widget.autoRange()  # Automatically rescale the axes
         except zmq.Again:
             pass
-
-    def stop_plotting(self):
-        self.timer.stop()
-
-    def resume_plotting(self):
-        self.timer.start(1000)
-
-    def closeEvent(self, event):
-        self.stop_plotting()
-        self.worker.stop()
-        self.worker_thread.join()
-        self.context.term()
-        event.accept()
 
     def on_mouse_move(self, pos):
         mouse_point = self.plot_widget.plotItem.vb.mapSceneToView(pos)
@@ -92,6 +63,11 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.show()
+
+    timer = QtCore.QTimer()
+    timer.timeout.connect(window.update_plot)
+    timer.start(1000)  # Update plot every second
+
     sys.exit(app.exec_())
 
 if __name__ == "__main__":
